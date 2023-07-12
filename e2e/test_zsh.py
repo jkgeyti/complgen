@@ -91,14 +91,17 @@ cmd { echo -e "completion\tdescription" };
         assert get_sorted_completions(capture_zsh_path, 'cmd ') == sorted([('completion', 'description')])
 
 
+SPECIAL_CHARACTERS = '?[^a]*{foo,*bar}'
+
+
 def test_completes_paths(complgen_binary_path: Path):
     with capture_grammar_completions(complgen_binary_path, '''cmd <PATH> [--help];''') as capture_zsh_path:
         with tempfile.TemporaryDirectory() as dir:
             with set_working_dir(Path(dir)):
                 Path('foo').write_text('dummy')
-                Path('bar').write_text('dummy')
+                Path(SPECIAL_CHARACTERS).write_text('dummy')
                 os.mkdir('baz')
-                assert get_sorted_completions(capture_zsh_path, 'cmd ') == sorted([('bar', ''), ('foo', ''), ('baz/', '')])
+                assert get_sorted_completions(capture_zsh_path, 'cmd ') == sorted([(SPECIAL_CHARACTERS, ''), ('foo', ''), ('baz/', '')])
 
 
 def test_completes_directories(complgen_binary_path: Path):
@@ -106,9 +109,9 @@ def test_completes_directories(complgen_binary_path: Path):
         with tempfile.TemporaryDirectory() as dir:
             with set_working_dir(Path(dir)):
                 os.mkdir('foo')
-                os.mkdir('bar')
+                os.mkdir(SPECIAL_CHARACTERS)
                 Path('baz').write_text('dummy')
-                assert get_sorted_completions(capture_zsh_path, 'cmd ') == sorted([('bar/', ''), ('foo/', '')])
+                assert get_sorted_completions(capture_zsh_path, 'cmd ') == sorted([(SPECIAL_CHARACTERS + '/', ''), ('foo/', '')])
 
 
 def get_jit_zsh_completions_expr(complgen_binary_path: Path, grammar: str, completed_word_index: int, words_before_cursor: list[str]) -> str:
@@ -120,7 +123,7 @@ def test_jit_completes_paths_zsh(complgen_binary_path: Path):
     with tempfile.TemporaryDirectory() as dir:
         with set_working_dir(Path(dir)):
             Path('foo').write_text('dummy')
-            Path('bar').write_text('dummy')
+            Path(SPECIAL_CHARACTERS).write_text('dummy')
             os.mkdir('baz')
             expr = get_jit_zsh_completions_expr(complgen_binary_path, '''cmd <PATH> [--help];''', 0, [])
             assert expr == 'local -a completions=("bar" "baz/" "foo")\nlocal -a descriptions=("bar" "baz/" "foo")\ncompadd -d descriptions -a completions\n'
@@ -130,7 +133,7 @@ def test_jit_completes_directories_zsh(complgen_binary_path: Path):
     with tempfile.TemporaryDirectory() as dir:
         with set_working_dir(Path(dir)):
             os.mkdir('foo')
-            os.mkdir('bar')
+            os.mkdir(SPECIAL_CHARACTERS)
             Path('baz').write_text('dummy')
             expr = get_jit_zsh_completions_expr(complgen_binary_path, '''cmd <DIRECTORY> [--help];''', 0, [])
             assert expr == 'local -a completions=("bar/" "foo/")\nlocal -a descriptions=("bar/" "foo/")\ncompadd -d descriptions -a completions\n'

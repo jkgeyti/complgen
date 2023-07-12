@@ -77,16 +77,19 @@ cmd { echo -e "completion\tdescription" };
         assert get_sorted_completions(input) == [('completion', 'description')]
 
 
+SPECIAL_CHARACTERS = '?[^a]*{foo,*bar}'
+
+
 def test_completes_paths(complgen_binary_path: Path):
     with completion_script_path(complgen_binary_path, '''cmd <PATH> [--help];''') as completions_file_path:
         with tempfile.TemporaryDirectory() as dir:
             with set_working_dir(Path(dir)):
                 Path('foo').write_text('dummy')
-                Path('bar').write_text('dummy')
+                Path(SPECIAL_CHARACTERS).write_text('dummy')
                 os.mkdir('baz')
                 input = 'source {}; complete --command cmd --do-complete "cmd "'.format(completions_file_path)
                 completions = get_sorted_completions(input)
-                assert completions == sorted([('bar', ''), ('baz/', ''), ('foo', '')])
+                assert completions == sorted([(SPECIAL_CHARACTERS + '/', ''), ('baz/', ''), ('foo', '')])
 
 
 def test_completes_directories(complgen_binary_path: Path):
@@ -94,11 +97,11 @@ def test_completes_directories(complgen_binary_path: Path):
         with tempfile.TemporaryDirectory() as dir:
             with set_working_dir(Path(dir)):
                 os.mkdir('foo')
-                os.mkdir('bar')
+                os.mkdir(SPECIAL_CHARACTERS)
                 Path('baz').write_text('dummy')
                 input = 'source {}; complete --command cmd --do-complete "cmd "'.format(completions_file_path)
                 completions = get_sorted_completions(input)
-                assert completions == sorted([('bar/', 'Directory'), ('foo/', 'Directory')])
+                assert completions == sorted([(SPECIAL_CHARACTERS + '/', 'Directory'), ('foo/', 'Directory')])
 
 
 
@@ -112,18 +115,18 @@ def test_jit_completes_paths_fish(complgen_binary_path: Path):
     with tempfile.TemporaryDirectory() as dir:
         with set_working_dir(Path(dir)):
             Path('foo').write_text('dummy')
-            Path('bar').write_text('dummy')
+            Path(SPECIAL_CHARACTERS).write_text('dummy')
             os.mkdir('baz')
-            assert get_sorted_jit_fish_completions(complgen_binary_path, '''cmd <PATH> [--help];''', 0, []) == sorted([('bar', ''), ('foo', ''), ('baz/', '')])
+            assert get_sorted_jit_fish_completions(complgen_binary_path, '''cmd <PATH> [--help];''', 0, []) == sorted([(SPECIAL_CHARACTERS, ''), ('foo', ''), ('baz/', '')])
 
 
 def test_jit_completes_directories_fish(complgen_binary_path: Path):
     with tempfile.TemporaryDirectory() as dir:
         with set_working_dir(Path(dir)):
             os.mkdir('foo')
-            os.mkdir('bar')
+            os.mkdir(SPECIAL_CHARACTERS)
             Path('baz').write_text('dummy')
-            assert get_sorted_jit_fish_completions(complgen_binary_path, '''cmd <DIRECTORY> [--help];''', 0, []) == sorted([('bar/', 'Directory'), ('foo/', 'Directory')])
+            assert get_sorted_jit_fish_completions(complgen_binary_path, '''cmd <DIRECTORY> [--help];''', 0, []) == sorted([(SPECIAL_CHARACTERS + '/', 'Directory'), ('foo/', 'Directory')])
 
 
 def test_specializes_for_fish(complgen_binary_path: Path):

@@ -27,15 +27,18 @@ def get_sorted_completions(completions_file_path: Path, input: str) -> list[str]
     return lines
 
 
+SPECIAL_CHARACTERS = '?[^a]*{foo,*bar}'
+
+
 def test_completes_paths(complgen_binary_path: Path):
     with completion_script_path(complgen_binary_path, '''cmd <PATH> [--help];''') as completions_file_path:
         with tempfile.TemporaryDirectory() as dir:
             with set_working_dir(Path(dir)):
                 Path('foo').write_text('dummy')
-                Path('bar').write_text('dummy')
+                Path(SPECIAL_CHARACTERS).write_text('dummy')
                 os.mkdir('baz')
                 completions = get_sorted_completions(completions_file_path, '''COMP_WORDS=(cmd); COMP_CWORD=1; _cmd; printf '%s\n' "${COMPREPLY[@]}"''')
-                assert completions == sorted(['foo', 'bar', 'baz'])
+                assert completions == sorted(['foo', SPECIAL_CHARACTERS, 'baz'])
 
 
 def test_completes_directories(complgen_binary_path: Path):
@@ -43,10 +46,10 @@ def test_completes_directories(complgen_binary_path: Path):
         with tempfile.TemporaryDirectory() as dir:
             with set_working_dir(Path(dir)):
                 os.mkdir('foo')
-                os.mkdir('bar')
+                os.mkdir(SPECIAL_CHARACTERS)
                 Path('baz').write_text('dummy')
                 completions = get_sorted_completions(completions_file_path, '''COMP_WORDS=(cmd); COMP_CWORD=1; _cmd; printf '%s\n' "${COMPREPLY[@]}"''')
-                assert completions == sorted(['foo', 'bar'])
+                assert completions == sorted(['foo', SPECIAL_CHARACTERS, 'bar'])
 
 
 def test_bash_uses_correct_transition_with_duplicated_literals(complgen_binary_path: Path):
@@ -96,18 +99,18 @@ def test_jit_completes_paths_bash(complgen_binary_path: Path):
     with tempfile.TemporaryDirectory() as dir:
         with set_working_dir(Path(dir)):
             Path('foo').write_text('dummy')
-            Path('bar').write_text('dummy')
+            Path(SPECIAL_CHARACTERS).write_text('dummy')
             os.mkdir('baz')
-            assert get_sorted_jit_bash_completions(complgen_binary_path, '''cmd <PATH> [--help];''', 0, []) == sorted(['bar', 'foo', 'baz'])
+            assert get_sorted_jit_bash_completions(complgen_binary_path, '''cmd <PATH> [--help];''', 0, []) == sorted([SPECIAL_CHARACTERS, 'foo', 'baz'])
 
 
 def test_jit_completes_directories_bash(complgen_binary_path: Path):
     with tempfile.TemporaryDirectory() as dir:
         with set_working_dir(Path(dir)):
             os.mkdir('foo')
-            os.mkdir('bar')
+            os.mkdir(SPECIAL_CHARACTERS)
             Path('baz').write_text('dummy')
-            assert get_sorted_jit_bash_completions(complgen_binary_path, '''cmd <DIRECTORY> [--help];''', 0, []) == sorted(['bar', 'foo'])
+            assert get_sorted_jit_bash_completions(complgen_binary_path, '''cmd <DIRECTORY> [--help];''', 0, []) == sorted([SPECIAL_CHARACTERS, 'foo'])
 
 
 def test_specializes_for_bash(complgen_binary_path: Path):
