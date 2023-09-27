@@ -201,7 +201,7 @@ If a literal is immediately followed with a quoted string, it's going to appear 
 completion time.  E.g. the grammar:
 
 ```sh
-grep --extended-regexp "PATTERNS are extended regular expressions" | --exclude  (skip files that match GLOB)
+grep --extended-regexp "PATTERNS are extended regular expressions" | --exclude  "skip files that match GLOB";
 ```
 
 results in something like this under fish (and zsh):
